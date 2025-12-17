@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Transport Crowd Load Recommender</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <h1>Public Transport Crowd Load Predictor</h1>
+
+  <form id="journeyForm">
+    <label>
+        Origin
+        <select id="origin" required>
+          <option value="">Select origin station</option>
+        </select>
+      </label>
+      
+      <label>
+        Destination
+        <select id="destination" required>
+          <option value="">Select destination station</option>
+        </select>
+      </label>      
+
+    <label>
+      Departure Time
+      <input type="datetime-local" id="departure_time" required />
+    </label>
+
+    <button type="submit">Find Best Route</button>
+  </form>
+
+  <section id="result"></section>
+
+  <script src="app.js"></script>
+</body>
+</html>
