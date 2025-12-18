@@ -1,4 +1,5 @@
-const WEBHOOK_URL = "https://mshavezarif.app.n8n.cloud/webhook/crowdload-predict";
+// Call Netlify Function instead of n8n Cloud directly
+const WEBHOOK_URL = "/api/crowdload-predict";
 
 const form = document.getElementById("journeyForm");
 const result = document.getElementById("result");
@@ -8,38 +9,36 @@ const STATIONS_API = "https://api.tfl.gov.uk/StopPoint/Mode/tube";
 const originSelect = document.getElementById("origin");
 const destinationSelect = document.getElementById("destination");
 
-
 async function loadStations() {
-    try {
-      const res = await fetch(STATIONS_API);
-      if (!res.ok) throw new Error("Station fetch failed");
-  
-      const data = await res.json();
-  
-      const stations = Array.from(
-        new Set(
-          data.stopPoints.map(sp => sp.commonName)
-        )
-      ).sort();
-  
-      stations.forEach(name => {
-        const opt1 = document.createElement("option");
-        opt1.value = name;
-        opt1.textContent = name;
-  
-        const opt2 = opt1.cloneNode(true);
-  
-        originSelect.appendChild(opt1);
-        destinationSelect.appendChild(opt2);
-      });
-  
-    } catch (err) {
-      console.error("Failed to load stations", err);
-    }
+  try {
+    const res = await fetch(STATIONS_API);
+    if (!res.ok) throw new Error("Station fetch failed");
+
+    const data = await res.json();
+
+    const stations = Array.from(
+      new Set(
+        data.stopPoints.map(sp => sp.commonName)
+      )
+    ).sort();
+
+    stations.forEach(name => {
+      const opt1 = document.createElement("option");
+      opt1.value = name;
+      opt1.textContent = name;
+
+      const opt2 = opt1.cloneNode(true);
+
+      originSelect.appendChild(opt1);
+      destinationSelect.appendChild(opt2);
+    });
+
+  } catch (err) {
+    console.error("Failed to load stations", err);
   }
+}
 
 loadStations();
-  
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -67,6 +66,7 @@ form.addEventListener("submit", async (e) => {
     renderResult(data);
 
   } catch (err) {
+    console.error("Request failed", err);
     result.innerHTML = "Failed to fetch recommendation.";
   }
 });
