@@ -1,5 +1,5 @@
 // Call Netlify Function instead of n8n Cloud directly
-const WEBHOOK_URL = "/api/crowdload-predict";
+const WEBHOOK_URL = "https://mshavezarif.app.n8n.cloud/webhook/crowdload-predict";
 
 const form = document.getElementById("journeyForm");
 const result = document.getElementById("result");
@@ -99,3 +99,4 @@ function renderResult(data) {
   html += "</ul>";
   result.innerHTML = html;
 }
+
