@@ -14,33 +14,28 @@ async function loadStations() {
     const res = await fetch(STATIONS_API);
     if (!res.ok) throw new Error("Station fetch failed");
     const data = await res.json();
-    
-    // Filter stations that have icsCode and remove duplicates
+
     const stationsMap = new Map();
+
     data.stopPoints.forEach(sp => {
       if (sp.icsCode && sp.commonName) {
-        // Use commonName as key to avoid duplicates
         if (!stationsMap.has(sp.commonName)) {
           stationsMap.set(sp.commonName, sp.icsCode);
-          // Also store reverse mapping for lookups
           stationMap.set(sp.icsCode, sp.commonName);
         }
       }
     });
-    
-    // Sort station names alphabetically
-    const sortedStations = Array.from(stationsMap.entries()).sort((a, b) => 
+
+    const sortedStations = Array.from(stationsMap.entries()).sort((a, b) =>
       a[0].localeCompare(b[0])
     );
-    
-    // Populate dropdowns
+
     sortedStations.forEach(([name, icsCode]) => {
       const opt1 = document.createElement("option");
-      opt1.value = icsCode;  // Store icsCode as value
-      opt1.textContent = name;  // Display commonName
-      
+      opt1.value = icsCode;
+      opt1.textContent = name;
+
       const opt2 = opt1.cloneNode(true);
-      
       originSelect.appendChild(opt1);
       destinationSelect.appendChild(opt2);
     });
@@ -54,30 +49,26 @@ loadStations();
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   result.innerHTML = "Loading...";
-  
-  const originCode = originSelect.value.trim();
-  const destinationCode = destinationSelect.value.trim();
-  const originName = originSelect.options[originSelect.selectedIndex].text;
-  const destinationName = destinationSelect.options[destinationSelect.selectedIndex].text;
-  
+
   const payload = {
-    origin_code: originCode,  // ICS code for TfL API
-    origin_name: originName,  // Station name for display
-    destination_code: destinationCode,  // ICS code for TfL API
-    destination_name: destinationName,  // Station name for display
+    origin_code: originSelect.value.trim(),
+    origin_name: originSelect.options[originSelect.selectedIndex].text,
+    destination_code: destinationSelect.value.trim(),
+    destination_name: destinationSelect.options[destinationSelect.selectedIndex].text,
     departure_time: new Date(
       document.getElementById("departure_time").value
     ).toISOString()
   };
-  
+
   try {
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    
+
     if (!res.ok) throw new Error("API error");
+
     const data = await res.json();
     renderResult(data);
   } catch (err) {
@@ -98,7 +89,7 @@ function renderResult(data) {
   }
 
   const summary = rec.summary;
-  const crowdAgg = rec.crowd?.aggregate;
+  const crowdAgg = rec.crowd.aggregate;
 
   let html = `
     <h2>Recommended Route</h2>
@@ -112,34 +103,48 @@ function renderResult(data) {
     <p><strong>Lines Used:</strong> ${summary.lines_used.join(" → ")}</p>
     <p><strong>Interchanges:</strong> ${summary.interchanges}</p>
 
-    <p><strong>Crowd Level:</strong> ${crowdAgg.final_crowd_label} 
-       (score ${crowdAgg.final_crowd_score}/100)</p>
+    <p>
+      <strong>Crowd Level:</strong>
+      ${crowdAgg.final_crowd_label}
+      (score ${crowdAgg.final_crowd_score}/100)
+    </p>
 
     <h3>Journey Breakdown</h3>
   `;
 
   rec.legs.forEach((leg, idx) => {
+    const interchange = rec.interchanges.find(
+      ic => ic.leg_from_index === idx
+    );
+
     html += `
-      <div style="margin-bottom:12px;">
-        <strong>Leg ${idx + 1}:</strong><br>
-        ${leg.mode === "walking"
-          ? `Walk from <strong>${leg.from_station}</strong> to <strong>${leg.to_station}</strong>`
-          : `Take <strong>${leg.line}</strong> line (${leg.direction})`}
+      <div style="padding:10px; border-left:4px solid #444; margin-bottom:10px;">
+        <strong>Leg ${idx + 1}</strong><br>
+        ${
+          leg.mode === "walking"
+            ? `Walk from <strong>${leg.from_station}</strong> to <strong>${leg.to_station}</strong>`
+            : `Take <strong>${leg.line}</strong> line (${leg.direction})`
+        }
         <br>
-        ${new Date(leg.departure_time).toLocaleTimeString()} → 
+        ${new Date(leg.departure_time).toLocaleTimeString()} →
         ${new Date(leg.arrival_time).toLocaleTimeString()}
         (${leg.duration_minutes} min)
       </div>
     `;
-  });
 
-  if (rec.interchanges && rec.interchanges.length > 0) {
-    html += `<h3>Where to Change</h3><ul>`;
-    rec.interchanges.forEach(ic => {
-      html += `<li>${ic.instruction}</li>`;
-    });
-    html += `</ul>`;
-  }
+    if (interchange) {
+      html += `
+        <div style="
+          margin:8px 0 16px 0;
+          padding:6px;
+          background:#f0f0f0;
+          font-size:0.9em;
+        ">
+          ${interchange.instruction}
+        </div>
+      `;
+    }
+  });
 
   html += `
     <h3>Why This Route?</h3>
@@ -154,8 +159,8 @@ function renderResult(data) {
     response.ranked_routes.slice(1, 4).forEach(r => {
       html += `
         <li>
-          ${r.summary.total_duration_minutes} min, 
-          ${r.summary.interchanges} change(s), 
+          ${r.summary.total_duration_minutes} min,
+          ${r.summary.interchanges} change(s),
           Crowd: ${r.crowd.aggregate.final_crowd_label}
         </li>
       `;
@@ -167,6 +172,3 @@ function renderResult(data) {
 
   result.innerHTML = html;
 }
-
-
-
