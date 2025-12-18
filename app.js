@@ -87,7 +87,8 @@ form.addEventListener("submit", async (e) => {
 });
 
 function renderResult(data) {
-  const rec = data.recommended_route;
+  const response = Array.isArray(data) ? data[0] : data;
+  const rec = response.recommended_route;
   console.log("RAW RESPONSE:", data);
 
   
@@ -109,15 +110,15 @@ function renderResult(data) {
     ${rec.is_disrupted ? '<p style="color: red;"><strong>⚠️ This route has disruptions</strong></p>' : ''}
     
     <h3>Why This Route?</h3>
-    <p>${data.decision_summary}</p>
-    <p><strong>Confidence:</strong> ${data.confidence_level}</p>
+    <p>${response.decision_summary}</p>
+    <p><strong>Confidence:</strong> ${response.confidence_level}</p>
     
     <h3>Alternative Routes</h3>
   `;
   
-  if (data.ranked_routes && data.ranked_routes.length > 1) {
+  if (response.ranked_routes && response.ranked_routes.length > 1) {
     html += "<ul>";
-    data.ranked_routes.slice(1, 4).forEach(r => {
+    response.ranked_routes.slice(1, 4).forEach(r => {
       html += `
         <li>
           <strong>${r.line} line (${r.direction})</strong> - 
@@ -131,9 +132,9 @@ function renderResult(data) {
     html += "</ul>";
     
     // Show why alternatives weren't chosen
-    if (data.why_not_others && data.why_not_others.length > 0) {
+    if (response.why_not_others && response.why_not_others.length > 0) {
       html += "<details><summary>Why not the alternatives?</summary><ul>";
-      data.why_not_others.slice(0, 3).forEach(alt => {
+      response.why_not_others.slice(0, 3).forEach(alt => {
         html += `<li><strong>${alt.route_id}:</strong> ${alt.reasons.join(' ')}</li>`;
       });
       html += "</ul></details>";
@@ -144,3 +145,4 @@ function renderResult(data) {
   
   result.innerHTML = html;
 }
+
