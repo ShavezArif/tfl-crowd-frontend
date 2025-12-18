@@ -88,6 +88,8 @@ form.addEventListener("submit", async (e) => {
 
 function renderResult(data) {
   const rec = data.recommended_route;
+  console.log("RAW RESPONSE:", data);
+
   
   if (!rec) {
     result.innerHTML = "<p>No route recommendation available.</p>";
@@ -142,3 +144,4 @@ function renderResult(data) {
   
   result.innerHTML = html;
 }
+
