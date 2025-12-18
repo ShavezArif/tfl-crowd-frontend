@@ -89,60 +89,84 @@ form.addEventListener("submit", async (e) => {
 function renderResult(data) {
   const response = Array.isArray(data) ? data[0] : data;
   const rec = response.recommended_route;
-  console.log("RAW RESPONSE:", data);
 
-  
+  console.log("RAW RESPONSE:", response);
+
   if (!rec) {
     result.innerHTML = "<p>No route recommendation available.</p>";
     return;
   }
-  
+
+  const summary = rec.summary;
+  const crowdAgg = rec.crowd?.aggregate;
+
   let html = `
     <h2>Recommended Route</h2>
-    <p><strong>${rec.line} line (${rec.direction})</strong></p>
-    <p><strong>From:</strong> ${rec.start_station}</p>
-    <p><strong>To:</strong> ${rec.end_station}</p>
-    <p><strong>Duration:</strong> ${rec.duration_minutes} minutes</p>
-    <p><strong>Departure:</strong> ${new Date(rec.departure_time).toLocaleString()}</p>
-    <p><strong>Arrival:</strong> ${new Date(rec.arrival_time).toLocaleString()}</p>
-    <p><strong>Crowd Level:</strong> ${rec.crowd_label} (score: ${rec.crowd_score}/100)</p>
-    ${rec.fare_pence ? `<p><strong>Fare:</strong> £${(rec.fare_pence / 100).toFixed(2)}</p>` : ''}
-    ${rec.is_disrupted ? '<p style="color: red;"><strong>⚠️ This route has disruptions</strong></p>' : ''}
-    
+
+    <p><strong>From:</strong> ${summary.start_station}</p>
+    <p><strong>To:</strong> ${summary.end_station}</p>
+    <p><strong>Total Duration:</strong> ${summary.total_duration_minutes} minutes</p>
+    <p><strong>Departure:</strong> ${new Date(summary.departure_time).toLocaleString()}</p>
+    <p><strong>Arrival:</strong> ${new Date(summary.arrival_time).toLocaleString()}</p>
+
+    <p><strong>Lines Used:</strong> ${summary.lines_used.join(" → ")}</p>
+    <p><strong>Interchanges:</strong> ${summary.interchanges}</p>
+
+    <p><strong>Crowd Level:</strong> ${crowdAgg.final_crowd_label} 
+       (score ${crowdAgg.final_crowd_score}/100)</p>
+
+    <h3>Journey Breakdown</h3>
+  `;
+
+  rec.legs.forEach((leg, idx) => {
+    html += `
+      <div style="margin-bottom:12px;">
+        <strong>Leg ${idx + 1}:</strong><br>
+        ${leg.mode === "walking"
+          ? `Walk from <strong>${leg.from_station}</strong> to <strong>${leg.to_station}</strong>`
+          : `Take <strong>${leg.line}</strong> line (${leg.direction})`}
+        <br>
+        ${new Date(leg.departure_time).toLocaleTimeString()} → 
+        ${new Date(leg.arrival_time).toLocaleTimeString()}
+        (${leg.duration_minutes} min)
+      </div>
+    `;
+  });
+
+  if (rec.interchanges && rec.interchanges.length > 0) {
+    html += `<h3>Where to Change</h3><ul>`;
+    rec.interchanges.forEach(ic => {
+      html += `<li>${ic.instruction}</li>`;
+    });
+    html += `</ul>`;
+  }
+
+  html += `
     <h3>Why This Route?</h3>
     <p>${response.decision_summary}</p>
     <p><strong>Confidence:</strong> ${response.confidence_level}</p>
-    
+
     <h3>Alternative Routes</h3>
   `;
-  
+
   if (response.ranked_routes && response.ranked_routes.length > 1) {
-    html += "<ul>";
+    html += "<ol>";
     response.ranked_routes.slice(1, 4).forEach(r => {
       html += `
         <li>
-          <strong>${r.line} line (${r.direction})</strong> - 
-          ${r.duration_minutes} min, 
-          Crowd: ${r.crowd_label} (${r.crowd_score}), 
-          Utility: ${r.ranking?.utility || 'N/A'}
-          ${r.is_disrupted ? ' ⚠️ Disrupted' : ''}
+          ${r.summary.total_duration_minutes} min, 
+          ${r.summary.interchanges} change(s), 
+          Crowd: ${r.crowd.aggregate.final_crowd_label}
         </li>
       `;
     });
-    html += "</ul>";
-    
-    // Show why alternatives weren't chosen
-    if (response.why_not_others && response.why_not_others.length > 0) {
-      html += "<details><summary>Why not the alternatives?</summary><ul>";
-      response.why_not_others.slice(0, 3).forEach(alt => {
-        html += `<li><strong>${alt.route_id}:</strong> ${alt.reasons.join(' ')}</li>`;
-      });
-      html += "</ul></details>";
-    }
+    html += "</ol>";
   } else {
     html += "<p>No alternative routes available.</p>";
   }
-  
+
   result.innerHTML = html;
 }
+
+
 
