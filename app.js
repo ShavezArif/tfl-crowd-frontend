@@ -13,9 +13,12 @@ async function loadStations() {
   try {
     const res = await fetch(STATIONS_API);
     if (!res.ok) throw new Error("Station fetch failed");
-
     const data = await res.json();
-
+    
+    // ADD THESE LINES TO SEE THE RESPONSE:
+    console.log("Full API Response:", data);
+    console.log("First Station Example:", data.stopPoints[0]);
+    
     const stations = Array.from(
       new Set(
         data.stopPoints.map(sp => sp.commonName)
@@ -99,4 +102,5 @@ function renderResult(data) {
   html += "</ul>";
   result.innerHTML = html;
 }
+
 
